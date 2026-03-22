@@ -90,6 +90,60 @@ export const spotifyRouter = createTRPCRouter({
       return spotify.searchTracks(input.query, input.limit);
     }),
 
+  getAccessToken: protectedProcedure.query(async ({ ctx }) => {
+    const spotify = await SpotifyAPI.fromUserId(ctx.userId);
+    return { accessToken: spotify.getToken() };
+  }),
+
+  play: protectedProcedure
+    .input(
+      z.object({
+        trackUris: z.array(z.string()).optional(),
+        contextUri: z.string().optional(),
+        deviceId: z.string().optional(),
+        offset: z.number().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const spotify = await SpotifyAPI.fromUserId(ctx.userId);
+      return spotify.play(input);
+    }),
+
+  pause: protectedProcedure
+    .input(z.object({ deviceId: z.string().optional() }))
+    .mutation(async ({ ctx, input }) => {
+      const spotify = await SpotifyAPI.fromUserId(ctx.userId);
+      return spotify.pause(input.deviceId);
+    }),
+
+  seek: protectedProcedure
+    .input(z.object({ positionMs: z.number(), deviceId: z.string().optional() }))
+    .mutation(async ({ ctx, input }) => {
+      const spotify = await SpotifyAPI.fromUserId(ctx.userId);
+      return spotify.seek(input.positionMs, input.deviceId);
+    }),
+
+  setVolume: protectedProcedure
+    .input(z.object({ volumePercent: z.number().min(0).max(100), deviceId: z.string().optional() }))
+    .mutation(async ({ ctx, input }) => {
+      const spotify = await SpotifyAPI.fromUserId(ctx.userId);
+      return spotify.setVolume(input.volumePercent, input.deviceId);
+    }),
+
+  skipNext: protectedProcedure
+    .input(z.object({ deviceId: z.string().optional() }))
+    .mutation(async ({ ctx, input }) => {
+      const spotify = await SpotifyAPI.fromUserId(ctx.userId);
+      return spotify.skipNext(input.deviceId);
+    }),
+
+  skipPrevious: protectedProcedure
+    .input(z.object({ deviceId: z.string().optional() }))
+    .mutation(async ({ ctx, input }) => {
+      const spotify = await SpotifyAPI.fromUserId(ctx.userId);
+      return spotify.skipPrevious(input.deviceId);
+    }),
+
   createPlaylist: protectedProcedure
     .input(
       z.object({

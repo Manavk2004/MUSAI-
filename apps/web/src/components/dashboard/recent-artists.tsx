@@ -33,7 +33,7 @@ export function RecentArtists() {
           ))}
         </div>
       ) : (
-        <div className="flex gap-4 overflow-x-auto pb-1">
+        <div className="flex gap-4 overflow-x-auto pt-1 pb-1">
           {topArtists?.items?.slice(0, 6).map((artist: any) => (
             <a
               key={artist.id}

@@ -26,6 +26,10 @@ export class SpotifyAPI {
     return new SpotifyAPI(token);
   }
 
+  getToken(): string {
+    return this.accessToken;
+  }
+
   private async fetch(endpoint: string, options?: RequestInit) {
     const response = await fetch(`${SPOTIFY_API_BASE}${endpoint}`, {
       ...options,
@@ -104,6 +108,101 @@ export class SpotifyAPI {
         public: isPublic,
       }),
     });
+  }
+
+  async play(options: {
+    trackUris?: string[];
+    contextUri?: string;
+    deviceId?: string;
+    offset?: number;
+  }) {
+    const body: Record<string, unknown> = {};
+    if (options.trackUris) body.uris = options.trackUris;
+    if (options.contextUri) body.context_uri = options.contextUri;
+    if (options.offset !== undefined) body.offset = { position: options.offset };
+
+    const query = options.deviceId ? `?device_id=${options.deviceId}` : "";
+    const response = await fetch(`${SPOTIFY_API_BASE}/me/player/play${query}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${this.accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok && response.status !== 204) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(
+        `Spotify API error: ${response.status} ${error?.error?.message || response.statusText}`
+      );
+    }
+    return { success: true };
+  }
+
+  async pause(deviceId?: string) {
+    const query = deviceId ? `?device_id=${deviceId}` : "";
+    const response = await fetch(`${SPOTIFY_API_BASE}/me/player/pause${query}`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${this.accessToken}` },
+    });
+    if (!response.ok && response.status !== 204) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(`Spotify API error: ${response.status} ${error?.error?.message || response.statusText}`);
+    }
+    return { success: true };
+  }
+
+  async seek(positionMs: number, deviceId?: string) {
+    const query = `?position_ms=${positionMs}${deviceId ? `&device_id=${deviceId}` : ""}`;
+    const response = await fetch(`${SPOTIFY_API_BASE}/me/player/seek${query}`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${this.accessToken}` },
+    });
+    if (!response.ok && response.status !== 204) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(`Spotify API error: ${response.status} ${error?.error?.message || response.statusText}`);
+    }
+    return { success: true };
+  }
+
+  async setVolume(volumePercent: number, deviceId?: string) {
+    const query = `?volume_percent=${volumePercent}${deviceId ? `&device_id=${deviceId}` : ""}`;
+    const response = await fetch(`${SPOTIFY_API_BASE}/me/player/volume${query}`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${this.accessToken}` },
+    });
+    if (!response.ok && response.status !== 204) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(`Spotify API error: ${response.status} ${error?.error?.message || response.statusText}`);
+    }
+    return { success: true };
+  }
+
+  async skipNext(deviceId?: string) {
+    const query = deviceId ? `?device_id=${deviceId}` : "";
+    const response = await fetch(`${SPOTIFY_API_BASE}/me/player/next${query}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${this.accessToken}` },
+    });
+    if (!response.ok && response.status !== 204) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(`Spotify API error: ${response.status} ${error?.error?.message || response.statusText}`);
+    }
+    return { success: true };
+  }
+
+  async skipPrevious(deviceId?: string) {
+    const query = deviceId ? `?device_id=${deviceId}` : "";
+    const response = await fetch(`${SPOTIFY_API_BASE}/me/player/previous${query}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${this.accessToken}` },
+    });
+    if (!response.ok && response.status !== 204) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(`Spotify API error: ${response.status} ${error?.error?.message || response.statusText}`);
+    }
+    return { success: true };
   }
 
   async addTracksToPlaylist(playlistId: string, uris: string[]) {
