@@ -1,13 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sparkles } from "lucide-react";
 import { PlaylistDialog } from "@/components/generate/playlist-dialog";
 import { GeneratedPlaylist } from "@/components/generate/generated-playlist";
 
+const PLAYLIST_STORAGE_KEY = "musai_pending_playlist";
+
 export default function GeneratePage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [generatedPlaylist, setGeneratedPlaylist] = useState<any>(null);
+
+  // Restore playlist from sessionStorage after Spotify auth redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("spotify_authorized") === "true") {
+      const stored = sessionStorage.getItem(PLAYLIST_STORAGE_KEY);
+      if (stored) {
+        try {
+          setGeneratedPlaylist(JSON.parse(stored));
+        } catch { /* ignore parse errors */ }
+      }
+      // Clean up the URL param
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -75,6 +92,7 @@ export default function GeneratePage() {
         onGenerated={(result) => {
           setDialogOpen(false);
           setGeneratedPlaylist(result);
+          sessionStorage.setItem(PLAYLIST_STORAGE_KEY, JSON.stringify(result));
         }}
       />
     </div>

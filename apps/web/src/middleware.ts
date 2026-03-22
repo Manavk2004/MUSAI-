@@ -5,6 +5,7 @@ const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/trpc(.*)",
+  "/api/spotify/callback",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {

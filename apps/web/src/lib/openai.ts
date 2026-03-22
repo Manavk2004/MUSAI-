@@ -57,7 +57,7 @@ export async function generatePlaylistWithAI(
   const prompt = `You are a music curator AI. Based on the user's listening profile, generate a playlist of exactly ${songCount} songs.
 
 USER'S TASTE PROFILE:
-- Top Artists: ${tasteProfile.topArtists.map((a) => `${a.name} (${a.genres.slice(0, 3).join(", ")})`).join(", ")}
+- Top Artists: ${tasteProfile.topArtists.map((a) => `${a.name} (${(a.genres || []).slice(0, 3).join(", ")})`).join(", ")}
 - Top Tracks: ${tasteProfile.topTracks.slice(0, 15).map((t) => `"${t.name}" by ${t.artist}`).join(", ")}
 - Audio Profile: Danceability ${tasteProfile.audioProfile.avgDanceability}, Energy ${tasteProfile.audioProfile.avgEnergy}, Valence/Happiness ${tasteProfile.audioProfile.avgValence}, Avg Tempo ${tasteProfile.audioProfile.avgTempo} BPM, Acousticness ${tasteProfile.audioProfile.avgAcousticness}
 
@@ -74,24 +74,52 @@ IMPORTANT RULES:
 4. The playlist should flow well - consider song order for a good listening experience
 5. Match the requested mood consistently throughout
 
-Respond with ONLY a JSON array of objects with "name" and "artist" fields. No other text.`;
+Respond with a JSON object containing a "tracks" key with an array of exactly ${songCount} objects, each with "name" and "artist" fields. Example: {"tracks": [{"name": "Song", "artist": "Artist"}, ...]}`;
 
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o",
-    messages: [{ role: "user", content: prompt }],
-    temperature: 0.8 + (adventurousness / 100) * 0.4,
-    response_format: { type: "json_object" },
-  });
+  let response;
+  try {
+    response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.8 + (adventurousness / 100) * 0.4,
+      response_format: { type: "json_object" },
+    });
+  } catch (err) {
+    console.error("[openai] API call failed:", err instanceof Error ? err.message : err);
+    throw new Error(`OpenAI API error: ${err instanceof Error ? err.message : "Unknown error"}`);
+  }
 
   const content = response.choices[0]?.message?.content;
+  console.log("[openai] Response content:", content?.substring(0, 200));
   if (!content) {
+    console.error("[openai] Empty response. Finish reason:", response.choices[0]?.finish_reason);
     throw new Error("Failed to generate playlist recommendations");
   }
 
   try {
     const parsed = JSON.parse(content);
-    // Handle both { tracks: [...] } and direct array formats
-    const tracks = Array.isArray(parsed) ? parsed : parsed.tracks || parsed.songs || parsed.playlist || [];
+    let tracks: TrackRecommendation[];
+
+    if (Array.isArray(parsed)) {
+      tracks = parsed;
+    } else if (parsed.tracks || parsed.songs || parsed.playlist || parsed.recommendations) {
+      tracks = parsed.tracks || parsed.songs || parsed.playlist || parsed.recommendations;
+    } else if (parsed.name && parsed.artist) {
+      // Single object response — wrap in array
+      tracks = [parsed];
+    } else {
+      // Try to find any array property in the response
+      const arrayProp = Object.values(parsed).find(Array.isArray) as TrackRecommendation[] | undefined;
+      tracks = arrayProp || [];
+    }
+
+    // Filter to only valid track objects
+    tracks = tracks.filter(
+      (t): t is TrackRecommendation =>
+        typeof t === "object" && t !== null && typeof t.name === "string" && typeof t.artist === "string"
+    );
+
+    console.log(`[openai] Parsed ${tracks.length} tracks`);
     return tracks.slice(0, songCount);
   } catch {
     throw new Error("Failed to parse AI response");
@@ -105,7 +133,7 @@ export async function generateDailyRecommendation(
 
 USER'S TASTE:
 - Artists they love: ${tasteProfile.topArtists.slice(0, 10).map((a) => a.name).join(", ")}
-- Genres: ${[...new Set(tasteProfile.topArtists.flatMap((a) => a.genres))].slice(0, 10).join(", ")}
+- Genres: ${[...new Set(tasteProfile.topArtists.flatMap((a) => a.genres || []))].slice(0, 10).join(", ")}
 - They prefer: Energy ${tasteProfile.audioProfile.avgEnergy}, Danceability ${tasteProfile.audioProfile.avgDanceability}, Valence ${tasteProfile.audioProfile.avgValence}
 
 Respond with ONLY a JSON object: {"name": "Song Name", "artist": "Artist Name", "reason": "Brief reason why they'd love this"}`;

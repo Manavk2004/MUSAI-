@@ -155,16 +155,17 @@ export const spotifyRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const spotify = await SpotifyAPI.fromUserId(ctx.userId);
-      const profile = await spotify.getCurrentUser();
-      const playlist = await spotify.createPlaylist(
-        profile.id,
-        input.name,
-        input.description || "",
-        input.isPublic
-      );
-      if (input.trackUris.length > 0) {
-        await spotify.addTracksToPlaylist(playlist.id, input.trackUris);
+      try {
+        const playlist = await spotify.createPlaylistWithTracks(
+          input.name,
+          input.description || "",
+          input.isPublic,
+          input.trackUris
+        );
+        return playlist;
+      } catch (err) {
+        console.error("[createPlaylist] failed:", err instanceof Error ? err.message : err);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Failed to create playlist: ${err instanceof Error ? err.message : "Unknown error"}` });
       }
-      return playlist;
     }),
 });

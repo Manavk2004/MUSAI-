@@ -42,6 +42,7 @@ export class SpotifyAPI {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
+      console.error(`[spotify] API error on ${endpoint}:`, response.status, JSON.stringify(error));
       throw new Error(
         `Spotify API error: ${response.status} ${error?.error?.message || response.statusText}`
       );
@@ -94,13 +95,14 @@ export class SpotifyAPI {
     );
   }
 
-  async createPlaylist(
-    userId: string,
+  async createPlaylistWithTracks(
     name: string,
     description: string,
-    isPublic: boolean
+    isPublic: boolean,
+    trackUris: string[]
   ) {
-    return this.fetch(`/users/${userId}/playlists`, {
+    // Create the playlist
+    const playlist = await this.fetch(`/me/playlists`, {
       method: "POST",
       body: JSON.stringify({
         name,
@@ -108,6 +110,19 @@ export class SpotifyAPI {
         public: isPublic,
       }),
     });
+
+    // Add tracks in chunks of 100
+    if (trackUris.length > 0) {
+      for (let i = 0; i < trackUris.length; i += 100) {
+        const chunk = trackUris.slice(i, i + 100);
+        await this.fetch(`/playlists/${playlist.id}/items`, {
+          method: "POST",
+          body: JSON.stringify({ uris: chunk }),
+        });
+      }
+    }
+
+    return playlist;
   }
 
   async play(options: {
@@ -213,7 +228,7 @@ export class SpotifyAPI {
     }
 
     for (const chunk of chunks) {
-      await this.fetch(`/playlists/${playlistId}/tracks`, {
+      await this.fetch(`/playlists/${playlistId}/items`, {
         method: "POST",
         body: JSON.stringify({ uris: chunk }),
       });
