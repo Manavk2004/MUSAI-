@@ -65,7 +65,7 @@ export function RecommendationPlayer() {
 
   if (!recommendation) {
     return (
-      <div className="bg-card rounded-xl border border-border p-6">
+      <div className="bg-card rounded-2xl border border-border p-6">
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
           AI Recommendation
         </h3>
@@ -79,7 +79,7 @@ export function RecommendationPlayer() {
   }
 
   return (
-    <div className="bg-card rounded-xl border border-border p-5 emerald-glow">
+    <div className="bg-card rounded-2xl border border-border p-5 emerald-glow">
       <h3 className="text-xs font-semibold text-emerald-500 uppercase tracking-wider mb-4">
         AI Pick for You
       </h3>

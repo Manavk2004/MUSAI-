@@ -2,7 +2,7 @@
 
 import { useUser, UserProfile } from "@clerk/nextjs";
 import { trpc } from "@/lib/trpc";
-import { CheckCircle2, XCircle, ExternalLink } from "lucide-react";
+import { CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
@@ -19,7 +19,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Spotify Connection Status */}
-      <div className="bg-card rounded-xl border border-border p-6">
+      <div className="bg-card rounded-2xl border border-border p-6">
         <h2 className="text-lg font-semibold text-foreground mb-4">
           Connected Services
         </h2>
@@ -80,11 +80,12 @@ export default function SettingsPage() {
       </div>
 
       {/* Clerk User Profile */}
-      <div className="bg-card rounded-xl border border-border p-6">
+      <div className="bg-card rounded-2xl border border-border p-6">
         <h2 className="text-lg font-semibold text-foreground mb-4">
           Account
         </h2>
         <UserProfile
+          routing="hash"
           appearance={{
             elements: {
               rootBox: "w-full",

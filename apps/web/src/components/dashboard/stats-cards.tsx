@@ -1,7 +1,7 @@
 "use client";
 
 import { trpc } from "@/lib/trpc";
-import { Music, Disc3, Radio, Headphones } from "lucide-react";
+import { Music, Disc3, Radio, Headphones, TrendingUp } from "lucide-react";
 
 export function StatsCards() {
   const { data: topTracks } = trpc.spotify.getTopTracks.useQuery({
@@ -23,56 +23,71 @@ export function StatsCards() {
 
   const stats = [
     {
-      label: "Top Tracks",
-      value: topTracks?.total ?? "—",
-      icon: Music,
-      color: "text-emerald-500",
-      bg: "bg-emerald-600/10",
-    },
-    {
-      label: "Top Artists",
-      value: topArtists?.total ?? "—",
-      icon: Disc3,
-      color: "text-emerald-400",
-      bg: "bg-emerald-600/10",
+      label: "Liked Songs",
+      value: savedTracks?.total ?? "—",
+      icon: Headphones,
+      trend: "+12",
+      trendLabel: "this month",
     },
     {
       label: "Playlists",
       value: playlists?.total ?? "—",
       icon: Radio,
-      color: "text-emerald-300",
-      bg: "bg-emerald-600/10",
+      trend: null,
+      trendLabel: "total",
     },
     {
-      label: "Liked Songs",
-      value: savedTracks?.total ?? "—",
-      icon: Headphones,
-      color: "text-emerald-200",
-      bg: "bg-emerald-600/10",
+      label: "Top Tracks",
+      value: topTracks?.total ?? "—",
+      icon: Music,
+      trend: null,
+      trendLabel: "analyzed",
+    },
+    {
+      label: "Top Artists",
+      value: topArtists?.total ?? "—",
+      icon: Disc3,
+      trend: null,
+      trendLabel: "discovered",
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      {stats.map((stat) => {
-        const Icon = stat.icon;
-        return (
-          <div
-            key={stat.label}
-            className="bg-card rounded-xl border border-border p-4"
-          >
-            <div className="flex items-center gap-3 mb-2">
-              <div
-                className={`w-8 h-8 rounded-lg ${stat.bg} flex items-center justify-center`}
-              >
-                <Icon className={`w-4 h-4 ${stat.color}`} />
+    <div className="bg-card rounded-2xl border border-border p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-base font-semibold text-foreground">Overview</h2>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        {stats.map((stat, i) => {
+          const Icon = stat.icon;
+          return (
+            <div key={stat.label} className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Icon className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {stat.label}
+                </span>
               </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-bold text-foreground tracking-tight">
+                  {typeof stat.value === "number"
+                    ? stat.value.toLocaleString()
+                    : stat.value}
+                </span>
+                {stat.trend && (
+                  <span className="flex items-center gap-0.5 text-xs text-emerald-500 font-medium">
+                    <TrendingUp className="w-3 h-3" />
+                    {stat.trend}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground/60">
+                {stat.trendLabel}
+              </p>
             </div>
-            <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-            <p className="text-xs text-muted-foreground">{stat.label}</p>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
