@@ -26,8 +26,8 @@ export function StatsCards() {
       label: "Liked Songs",
       value: savedTracks?.total ?? "—",
       icon: Headphones,
-      trend: "+12",
-      trendLabel: "this month",
+      trend: null,
+      trendLabel: "total",
     },
     {
       label: "Playlists",
