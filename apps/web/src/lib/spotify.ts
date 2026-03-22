@@ -220,6 +220,17 @@ export class SpotifyAPI {
     return { success: true };
   }
 
+  async getTracks(ids: string[]) {
+    // Spotify allows max 50 tracks per request
+    const allTracks: any[] = [];
+    for (let i = 0; i < ids.length; i += 50) {
+      const chunk = ids.slice(i, i + 50);
+      const result = await this.fetch(`/tracks?ids=${encodeURIComponent(chunk.join(","))}`);
+      allTracks.push(...(result.tracks || []));
+    }
+    return allTracks.filter(Boolean);
+  }
+
   async addTracksToPlaylist(playlistId: string, uris: string[]) {
     // Spotify allows max 100 tracks per request
     const chunks = [];

@@ -19,12 +19,12 @@ interface TasteProfile {
 
 interface GeneratePlaylistInput {
   tasteProfile: TasteProfile;
-  mood: string;
+  mood?: string;
   genre?: string;
-  adventurousness: number;
   songCount: number;
   additionalNotes?: string;
   existingTracks: string[];
+  seedTracks?: Array<{ name: string; artist: string }>;
 }
 
 interface TrackRecommendation {
@@ -39,22 +39,47 @@ export async function generatePlaylistWithAI(
     tasteProfile,
     mood,
     genre,
-    adventurousness,
     songCount,
     additionalNotes,
     existingTracks,
+    seedTracks,
   } = input;
 
-  const adventurenessLabel =
-    adventurousness < 25
-      ? "very similar to their current taste"
-      : adventurousness < 50
-        ? "somewhat familiar with slight exploration"
-        : adventurousness < 75
-          ? "a balanced mix of familiar and new territory"
-          : "highly exploratory and surprising";
+  let prompt: string;
 
-  const prompt = `You are a music curator AI. Based on the user's listening profile, generate a playlist of exactly ${songCount} songs.
+  if (seedTracks && seedTracks.length > 0) {
+    // Seed-track-based generation
+    const seedList = seedTracks
+      .map((t) => `"${t.name}" by ${t.artist}`)
+      .join(", ");
+
+    prompt = `You are a music curator AI. Generate a playlist of exactly ${songCount} songs inspired by these seed songs the user selected:
+
+SEED SONGS:
+${seedList}
+
+USER'S GENERAL TASTE PROFILE (for additional context):
+- Top Artists: ${tasteProfile.topArtists.map((a) => `${a.name} (${(a.genres || []).slice(0, 3).join(", ")})`).join(", ")}
+- Audio Profile: Danceability ${tasteProfile.audioProfile.avgDanceability}, Energy ${tasteProfile.audioProfile.avgEnergy}, Valence/Happiness ${tasteProfile.audioProfile.avgValence}, Avg Tempo ${tasteProfile.audioProfile.avgTempo} BPM
+
+PLAYLIST REQUIREMENTS:
+- Generate songs that match the vibe, energy, and style of the seed songs
+${mood ? `- Mood: ${mood}` : "- Mood: Infer from the seed songs"}
+${genre ? `- Genre focus: ${genre}` : "- Genre: Based on the seed songs' genres"}
+${additionalNotes ? `- Additional notes: ${additionalNotes}` : ""}
+
+IMPORTANT RULES:
+1. Suggest REAL songs that exist on Spotify
+2. Do NOT include the seed songs themselves in the playlist
+3. Avoid duplicating these tracks the user already knows: ${existingTracks.slice(0, 20).join(", ")}
+4. The playlist should flow well - consider song order for a good listening experience
+5. Match the energy and feel of the seed songs consistently
+6. Include a mix of well-known and lesser-known tracks that fit the vibe
+
+Respond with a JSON object containing a "tracks" key with an array of exactly ${songCount} objects, each with "name" and "artist" fields. Example: {"tracks": [{"name": "Song", "artist": "Artist"}, ...]}`;
+  } else {
+    // Vibe-based generation (original flow without adventurousness)
+    prompt = `You are a music curator AI. Based on the user's listening profile, generate a playlist of exactly ${songCount} songs.
 
 USER'S TASTE PROFILE:
 - Top Artists: ${tasteProfile.topArtists.map((a) => `${a.name} (${(a.genres || []).slice(0, 3).join(", ")})`).join(", ")}
@@ -62,9 +87,9 @@ USER'S TASTE PROFILE:
 - Audio Profile: Danceability ${tasteProfile.audioProfile.avgDanceability}, Energy ${tasteProfile.audioProfile.avgEnergy}, Valence/Happiness ${tasteProfile.audioProfile.avgValence}, Avg Tempo ${tasteProfile.audioProfile.avgTempo} BPM, Acousticness ${tasteProfile.audioProfile.avgAcousticness}
 
 PLAYLIST REQUIREMENTS:
-- Mood: ${mood}
+- Mood: ${mood || "not specified"}
 ${genre ? `- Genre focus: ${genre}` : "- Genre: Based on user's taste profile"}
-- Discovery level: ${adventurenessLabel} (${adventurousness}/100)
+- Discovery level: a balanced mix of familiar and new territory
 ${additionalNotes ? `- Additional notes: ${additionalNotes}` : ""}
 
 IMPORTANT RULES:
@@ -75,13 +100,14 @@ IMPORTANT RULES:
 5. Match the requested mood consistently throughout
 
 Respond with a JSON object containing a "tracks" key with an array of exactly ${songCount} objects, each with "name" and "artist" fields. Example: {"tracks": [{"name": "Song", "artist": "Artist"}, ...]}`;
+  }
 
   let response;
   try {
     response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],
-      temperature: 0.8 + (adventurousness / 100) * 0.4,
+      temperature: 0.9,
       response_format: { type: "json_object" },
     });
   } catch (err) {
