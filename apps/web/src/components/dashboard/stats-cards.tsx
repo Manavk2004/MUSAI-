@@ -24,14 +24,14 @@ export function StatsCards() {
   const stats = [
     {
       label: "Top Tracks",
-      value: topTracks?.items?.length ?? "—",
+      value: topTracks?.total ?? "—",
       icon: Music,
       color: "text-emerald-500",
       bg: "bg-emerald-600/10",
     },
     {
       label: "Top Artists",
-      value: topArtists?.items?.length ?? "—",
+      value: topArtists?.total ?? "—",
       icon: Disc3,
       color: "text-emerald-400",
       bg: "bg-emerald-600/10",

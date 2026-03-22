@@ -32,7 +32,9 @@ export const playlistRouter = createTRPCRouter({
       ]);
 
       // Get audio features for top tracks
-      const trackIds = topTracks.items.map((t: any) => t.id);
+      const trackItems = topTracks?.items ?? [];
+      const artistItems = topArtists?.items ?? [];
+      const trackIds = trackItems.map((t: any) => t.id);
       const audioFeatures =
         trackIds.length > 0
           ? await spotify.getAudioFeatures(trackIds)
@@ -40,15 +42,15 @@ export const playlistRouter = createTRPCRouter({
 
       // Build taste profile for GPT-4o
       const tasteProfile = {
-        topArtists: topArtists.items.map((a: any) => ({
+        topArtists: artistItems.map((a: any) => ({
           name: a.name,
           genres: a.genres,
         })),
-        topTracks: topTracks.items.map((t: any) => ({
+        topTracks: trackItems.map((t: any) => ({
           name: t.name,
-          artist: t.artists[0]?.name,
+          artist: t.artists?.[0]?.name,
         })),
-        audioProfile: summarizeAudioFeatures(audioFeatures.audio_features),
+        audioProfile: summarizeAudioFeatures(audioFeatures?.audio_features ?? []),
       };
 
       // Generate recommendations with GPT-4o
@@ -60,8 +62,8 @@ export const playlistRouter = createTRPCRouter({
         adventurousness: input.adventurousness,
         songCount,
         additionalNotes: input.additionalNotes,
-        existingTracks: topTracks.items.map(
-          (t: any) => `${t.name} - ${t.artists[0]?.name}`
+        existingTracks: trackItems.map(
+          (t: any) => `${t.name} - ${t.artists?.[0]?.name}`
         ),
       });
 
